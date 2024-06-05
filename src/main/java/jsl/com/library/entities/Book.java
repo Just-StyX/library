@@ -7,6 +7,7 @@ import jsl.com.library.entities.utils.Category;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Entity
 @Table(name = "library")
@@ -38,7 +39,7 @@ public class Book {
     private String version;
 
     @Column(name = "quantity", nullable = false)
-    private int quantityOnShelve;
+    private AtomicInteger quantityOnShelve = new AtomicInteger(0);
 
     @ManyToMany(cascade = {CascadeType.MERGE, CascadeType.PERSIST}, mappedBy = "books")
     private Set<LibraryUser> libraryUsers = new HashSet<>();
@@ -107,11 +108,11 @@ public class Book {
         this.version = version;
     }
 
-    public int getQuantityOnShelve() {
+    public AtomicInteger getQuantityOnShelve() {
         return quantityOnShelve;
     }
 
-    public void setQuantityOnShelve(int quantityOnShelve) {
+    public void setQuantityOnShelve(AtomicInteger quantityOnShelve) {
         this.quantityOnShelve = quantityOnShelve;
     }
 
@@ -129,7 +130,7 @@ public class Book {
     }
 
     public boolean isAvailable() {
-        return this.quantityOnShelve > 0;
+        return this.quantityOnShelve.get() > 0;
     }
 
     public Book isbn(String isbn) {
@@ -167,12 +168,12 @@ public class Book {
      }
 
      public Book quantity(int quantity) {
-        this.quantityOnShelve += quantity;
+        this.quantityOnShelve.addAndGet(quantity);
         return this;
      }
 
      public Book reduceByOne() {
-        this.quantityOnShelve -= 1;
+        this.quantityOnShelve.decrementAndGet();
         return this;
      }
 
