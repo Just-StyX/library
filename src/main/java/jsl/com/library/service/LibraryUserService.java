@@ -77,7 +77,7 @@ public class LibraryUserService {
         return userLibraryRepository.findAll().stream().map(UserDataConverter::convertUserToDto).toList();
     }
 
-    public void borrowBook(Authentication authentication, String bookId) {
+    public synchronized void borrowBook(Authentication authentication, String bookId) {
         var user = userLibraryRepository.findByUsername(authentication.getName());
         var book = bookLibraryRepository.findById(bookId);
         if (user.isPresent() && book.isPresent()) {
