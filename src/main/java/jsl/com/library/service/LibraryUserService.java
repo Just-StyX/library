@@ -77,33 +77,36 @@ public class LibraryUserService {
         return userLibraryRepository.findAll().stream().map(UserDataConverter::convertUserToDto).toList();
     }
 
-    public synchronized void borrowBook(Authentication authentication, String bookId) {
+    public void borrowBook(Authentication authentication, String bookId) {
         var user = userLibraryRepository.findByUsername(authentication.getName());
         var book = bookLibraryRepository.findById(bookId);
         if (user.isPresent() && book.isPresent()) {
             var foundUser = user.get();
             var foundBook = book.get();
-            if (foundBook.isAvailable()) {
-                var authority = new Authority();
-                authority.addUser(foundUser);
-                authority.setAuthority(foundBook.getIsbn());
-                foundBook.addLibraryUser(foundUser);
-                foundBook.reduceByOne();
-                bookLibraryRepository.save(foundBook);
-                var bookUsers = BookUsers.init()
-                        .userId(foundUser.getId())
-                        .bookId(bookId)
-                        .borrowedDate()
-                        .submitted(false);
-                var userUtility = UserUtilities.init()
-                        .isCompleted(false)
-                        .userId(foundUser.getId())
-                        .bookId(bookId).currentPage(0).isSubmitted(false).isStarted(true);
-                bookUsersRepository.save(bookUsers);
-                userUtilitiesRepository.save(userUtility);
-            } else {
-                throw new BookNotAvailableException("Book not available");
+            synchronized (this) {
+                if (foundBook.isAvailable()) {
+                    var authority = new Authority();
+                    authority.addUser(foundUser);
+                    authority.setAuthority(foundBook.getIsbn());
+                    foundBook.addLibraryUser(foundUser);
+                    foundBook.reduceByOne();
+                    bookLibraryRepository.save(foundBook);
+                    var bookUsers = BookUsers.init()
+                            .userId(foundUser.getId())
+                            .bookId(bookId)
+                            .borrowedDate()
+                            .submitted(false);
+                    var userUtility = UserUtilities.init()
+                            .isCompleted(false)
+                            .userId(foundUser.getId())
+                            .bookId(bookId).currentPage(0).isSubmitted(false).isStarted(true);
+                    bookUsersRepository.save(bookUsers);
+                    userUtilitiesRepository.save(userUtility);
+                } else {
+                    throw new BookNotAvailableException("Book not available");
+                }
             }
+
         }
     }
 
